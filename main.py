@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from entities.task import Task
+from entities.user import User
 
 import database
 
@@ -40,4 +41,37 @@ def create_task(payload: Task):
         connection.close()
     return "All done"
 
+
+@app.post("/users")
+def create_task(payload: Task):
+    connection = database.connect()
+    try:
+        with connection:
+            connection.execute(
+                "INSERT INTO users (username, password) VALUES (?, ?)",
+                (payload.title, payload.description),
+            )
+    finally:
+        connection.close()
+    return "All done"
+
+
+
+@app.get("/users", response_model=list[User])
+def get_tasks():
+    connection = database.connect()
+    try:
+        with connection:
+            
+            breakpoint()
+            dbresult = connection.execute(
+                "SELECT username, password FROM tasks"
+            )
+            users = [
+                Task(title=row[0], description=row[1])
+                for row in dbresult.fetchall()
+            ]
+            return users
+    finally:
+        connection.close()
 
