@@ -1,0 +1,43 @@
+from fastapi import FastAPI
+from entities.task import Task
+
+import database
+
+
+app = FastAPI(title="Python API", version="1.0.0")
+
+database.initialize_database()
+
+@app.get("/tasks", response_model=list[Task])
+def get_tasks():
+    connection = database.connect()
+    try:
+        with connection:
+            
+            breakpoint()
+            dbresult = connection.execute(
+                "SELECT title, description FROM tasks"
+            )
+            tasks = [
+                Task(title=row[0], description=row[1])
+                for row in dbresult.fetchall()
+            ]
+            return tasks
+    finally:
+        connection.close()
+
+
+@app.post("/tasks")
+def create_task(payload: Task):
+    connection = database.connect()
+    try:
+        with connection:
+            connection.execute(
+                "INSERT INTO tasks (title, description) VALUES (?, ?)",
+                (payload.title, payload.description),
+            )
+    finally:
+        connection.close()
+    return "All done"
+
+
