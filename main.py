@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from entities.task import Task
-from entities.user import User
+from entities.user import User, UserResponse
 
 import database
+from bcrypt_hashing import hash_password, verify_password
 
 
 app = FastAPI(title="Python API", version="1.0.0")
@@ -15,7 +16,6 @@ def get_tasks():
     try:
         with connection:
             
-            breakpoint()
             dbresult = connection.execute(
                 "SELECT title, description FROM tasks"
             )
@@ -43,13 +43,17 @@ def create_task(payload: Task):
 
 
 @app.post("/users")
-def create_task(payload: Task):
+def create_user(payload: User):
+    try:
+        password_hash = hash_password(payload.password)
+    except ValueError:
+        raise HTTPException(422, "Password cannot be hashed")
     connection = database.connect()
     try:
         with connection:
             connection.execute(
                 "INSERT INTO users (username, password) VALUES (?, ?)",
-                (payload.title, payload.description),
+                (payload.username, password_hash),
             )
     finally:
         connection.close()
@@ -57,21 +61,45 @@ def create_task(payload: Task):
 
 
 
-@app.get("/users", response_model=list[User])
-def get_tasks():
+@app.get("/users", response_model=list[UserResponse])
+def get_users():
     connection = database.connect()
     try:
         with connection:
             
-            breakpoint()
             dbresult = connection.execute(
-                "SELECT username, password FROM tasks"
+                "SELECT username FROM users"
             )
             users = [
-                Task(title=row[0], description=row[1])
+                UserResponse(username=row[0])
                 for row in dbresult.fetchall()
             ]
             return users
     finally:
         connection.close()
 
+
+
+
+@app.post("/login")
+def login(data: User):
+    connection = database.connect()
+    try:
+        dbResult = connection.execute(
+            "SELECT username, password FROM users "
+            "WHERE username = ?",
+            (data.username,),
+        ).fetchone()
+    finally:
+        connection.close()
+    
+    if dbResult is None:
+        raise HTTPException(401, "Invalid credentials")
+    
+    try:
+        password_matches = verify_password(data.password, dbResult[1])
+    except ValueError:
+        password_matches = False
+    if not password_matches:
+        raise HTTPException(401, "Invalid credentials")
+    return {"message": "Login successful"}

@@ -23,7 +23,7 @@ def initialize_database() -> None:
     with connect() as database:
         database.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INT PRIMARY KEY,
+                id INTEGER PRIMARY KEY,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL
             )
