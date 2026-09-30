@@ -52,7 +52,7 @@ def create_user(payload: User):
     try:
         with connection:
             connection.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
+                "INSERT INTO users (username, passwordHash) VALUES (?, ?)",
                 (payload.username, password_hash),
             )
     finally:
@@ -86,7 +86,7 @@ def login(data: User):
     connection = database.connect()
     try:
         dbResult = connection.execute(
-            "SELECT username, password FROM users "
+            "SELECT username, passwordHash FROM users "
             "WHERE username = ?",
             (data.username,),
         ).fetchone()
