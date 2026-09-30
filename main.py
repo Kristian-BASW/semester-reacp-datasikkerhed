@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from entities.task import Task
-from entities.user import User
+from entities.user import User, UserResponse
 
 import database
 import symmetric_encryption
@@ -44,21 +44,21 @@ def create_task(payload: Task):
 
 
 @app.post("/users")
-def create_user(payload: Task):
+def create_user(payload: User):
     connection = database.connect()
     try:
         with connection:
             connection.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                (payload.title, payload.description),
+                "INSERT INTO users (username, password, firstname, lastname, cprNumber) VALUES (?, ?, ?, ?, ?)",
+                (payload.firstname, payload.password, payload.firstname, payload.lastname, payload.cpr_number),
             )
+            connection.commit()
     finally:
         connection.close()
     return "All done"
 
 
-
-@app.get("/users", response_model=list[User])
+@app.get("/users", response_model=list[UserResponse])
 def get_users():
     connection = database.connect()
     try:
@@ -66,10 +66,10 @@ def get_users():
             
             breakpoint()
             dbresult = connection.execute(
-                "SELECT username, password FROM tasks"
+                "SELECT username, firstname, lastname FROM users"
             )
             users = [
-                Task(title=row[0], description=row[1])
+                UserResponse(username=row[0], firstname=row[1], lastname=row[2])
                 for row in dbresult.fetchall()
             ]
             return users

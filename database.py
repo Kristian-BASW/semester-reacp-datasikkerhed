@@ -25,7 +25,10 @@ def initialize_database() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 id INT PRIMARY KEY,
                 username TEXT NOT NULL,
-                password TEXT NOT NULL
+                password TEXT NOT NULL,
+                firstname TEXT NOT NULL,
+                lastname TEXT NOT NULL,
+                cprNumber TEXT NOT NULL
             )
         """)
 
