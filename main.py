@@ -3,6 +3,7 @@ from entities.task import Task
 from entities.user import User
 
 import database
+import symmetric_encryption
 
 
 app = FastAPI(title="Python API", version="1.0.0")
@@ -43,7 +44,7 @@ def create_task(payload: Task):
 
 
 @app.post("/users")
-def create_task(payload: Task):
+def create_user(payload: Task):
     connection = database.connect()
     try:
         with connection:
@@ -58,7 +59,7 @@ def create_task(payload: Task):
 
 
 @app.get("/users", response_model=list[User])
-def get_tasks():
+def get_users():
     connection = database.connect()
     try:
         with connection:
@@ -75,3 +76,9 @@ def get_tasks():
     finally:
         connection.close()
 
+
+
+@app.post("/encryption")
+def encrypt_symmetric(message: str):
+    return symmetric_encryption.encrypt(message)
+    
