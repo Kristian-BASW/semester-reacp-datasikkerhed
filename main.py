@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from entities.task import Task
-from entities.user import User, UserResponse
+from entities.user import User, UserResponse, UserResponseList, UserResponseRaw
 
 import database
 import symmetric_encryption
@@ -15,8 +15,6 @@ def get_tasks():
     connection = database.connect()
     try:
         with connection:
-            
-            breakpoint()
             dbresult = connection.execute(
                 "SELECT title, description FROM tasks"
             )
@@ -46,11 +44,12 @@ def create_task(payload: Task):
 @app.post("/users")
 def create_user(payload: User):
     connection = database.connect()
+    encrypted_cpr = symmetric_encryption.encrypt(payload.cpr_number)
     try:
         with connection:
             connection.execute(
                 "INSERT INTO users (username, password, firstname, lastname, cprNumber) VALUES (?, ?, ?, ?, ?)",
-                (payload.firstname, payload.password, payload.firstname, payload.lastname, payload.cpr_number),
+                (payload.firstname, payload.password, payload.firstname, payload.lastname, encrypted_cpr),
             )
             connection.commit()
     finally:
@@ -58,18 +57,17 @@ def create_user(payload: User):
     return "All done"
 
 
-@app.get("/users", response_model=list[UserResponse])
+@app.get("/users", response_model=list[UserResponseList])
 def get_users():
     connection = database.connect()
     try:
         with connection:
             
-            breakpoint()
             dbresult = connection.execute(
                 "SELECT username, firstname, lastname FROM users"
             )
             users = [
-                UserResponse(username=row[0], firstname=row[1], lastname=row[2])
+                UserResponseList(username=row[0], firstname=row[1], lastname=row[2])
                 for row in dbresult.fetchall()
             ]
             return users
@@ -78,7 +76,24 @@ def get_users():
 
 
 
+@app.get("/users/{id}", response_model=UserResponseRaw)
+def get_user(id: int):
+    connection = database.connect()
+    try:
+        with connection:
+            row = connection.execute(
+                "SELECT username, firstname, lastname, cprNumber FROM users WHERE id = ?",
+                (id,),
+            ).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="User not found")
+            return UserResponseRaw(username=row[0], firstname=row[1], lastname=row[2], cpr_number_encrypted=row[3])
+    finally:
+        connection.close()
+
+
 @app.post("/encryption")
 def encrypt_symmetric(message: str):
+    database.connec
     return symmetric_encryption.encrypt(message)
     
